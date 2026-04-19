@@ -205,3 +205,32 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+
+
+# BizLink Project Specific
+
+
+# SQLite Database (development)
+bizlink.db
+*.db
+
+# Database journals
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# Environment variables for BizLink
+.env
+.env.local
+
+# VS Code settings (optional - uncomment if you don't want to share editor config)
+.vscode/
+
+# OS files (if not already covered)
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.tempD
