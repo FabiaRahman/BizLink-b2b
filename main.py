@@ -2,13 +2,13 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from app.database import Base, engine
-from app.routes import orders, refunds
+from app.routes import orders, refunds, error_logs
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: Create all database tables
     Base.metadata.create_all(bind=engine)
     print("✅ Database tables created successfully.")
+    print("📦 Tables: orders, refunds, error_logs")
     yield
 
 app = FastAPI(
@@ -18,10 +18,18 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Include routers
 app.include_router(orders.router)
 app.include_router(refunds.router)
+app.include_router(error_logs.router)
 
 @app.get("/", operation_id="root_health_check")
 def root():
-    return {"message": "BizLink backend is running"}
+    return {
+        "message": "BizLink backend is running",
+        "endpoints": {
+            "orders": "/orders",
+            "refunds": "/refunds",
+            "error_logs": "/error-logs",
+            "docs": "/docs"
+        }
+    }
