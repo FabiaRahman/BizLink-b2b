@@ -1,8 +1,8 @@
+# main.py
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from app.database import Base, engine
-# ONLY import Orders and Refunds (since others aren't ready)
-from app.routes import orders, refunds 
+from app.routes import orders, refunds
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -18,7 +18,7 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# ONLY include active routers
+# Include routers
 app.include_router(orders.router)
 app.include_router(refunds.router)
 
