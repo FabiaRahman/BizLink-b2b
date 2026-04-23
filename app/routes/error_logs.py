@@ -6,15 +6,15 @@ from datetime import datetime
 
 from app.database import get_db
 from app.models.error_log import ErrorLog, ErrorType, ResolutionStatus
+from app.models.manual_review import ManualReview, ReviewStatus  # ✅ ADDED THIS IMPORT
 from app.schemas.error_log import ErrorLogCreate, ErrorLogResponse
 
-# ✅ CRITICAL: Initialize the router
 router = APIRouter(prefix="/error-logs", tags=["Error Detection & Logging"])
 
 @router.post("/", response_model=ErrorLogResponse, status_code=201)
 def create_error_log(error: ErrorLogCreate, db: Session = Depends(get_db)):
     """
-    SRS 3.2.3 FR-2: Log error with full context
+    SRS 3.2.3 FR-2 & FR-7: Log error and auto-create Manual Review
     """
     db_error = ErrorLog(
         workflow_type=error.workflow_type,
@@ -30,7 +30,15 @@ def create_error_log(error: ErrorLogCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(db_error)
     
-    # TODO: SRS 3.2.3 FR-5 → Send alert notification (Email/Slack)
+    # ✅ AUTO-CREATE MANUAL REVIEW RECORD
+    manual_review = ManualReview(
+        error_log_id=db_error.id,
+        workflow_type=error.workflow_type,
+        entity_id=error.workflow_run_id,
+        status=ReviewStatus.pending
+    )
+    db.add(manual_review)
+    db.commit()
     
     return db_error
 

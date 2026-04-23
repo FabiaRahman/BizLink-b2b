@@ -1,6 +1,6 @@
 # app/models/error_log.py
 from sqlalchemy import Column, Integer, String, DateTime, Enum as SAEnum
-from sqlalchemy.orm import relationship  # ← Keep this import for future use
+from sqlalchemy.orm import relationship
 from datetime import datetime
 from enum import Enum as PyEnum
 from app.database import Base
@@ -32,5 +32,5 @@ class ErrorLog(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     resolved_at = Column(DateTime, nullable=True)
 
-    # ⚠️ COMMENT OUT THIS LINE FOR NOW - ManualReview not implemented yet
-    # manual_review = relationship("ManualReview", back_populates="error_log", uselist=False)
+    # ✅ ADD THIS RELATIONSHIP (was missing)
+    manual_review = relationship("ManualReview", back_populates="error_log", uselist=False)
