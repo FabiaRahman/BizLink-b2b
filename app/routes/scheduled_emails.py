@@ -1,4 +1,3 @@
-# app/routes/scheduled_emails.py
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
@@ -7,19 +6,25 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
+
+
+
 from app.database import get_db
 from app.models.scheduled_email import ScheduledEmail
 from app.models.error_log import ErrorLog, ErrorType, ResolutionStatus
 from app.models.manual_review import ManualReview, ReviewStatus
 from app.schemas.scheduled_email import ScheduledEmailCreate, ScheduledEmailResponse
 
+
 router = APIRouter(prefix="/scheduled-emails", tags=["Scheduled Email Workflow"])
+
 
 # ⚠️ NOTE: In production, load these from .env variables
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 EMAIL_USER = "your_email@gmail.com"
 EMAIL_PASSWORD = "your_app_password"
+
 
 @router.post("/", response_model=ScheduledEmailResponse, status_code=201)
 def create_scheduled_email(email: ScheduledEmailCreate, db: Session = Depends(get_db)):
@@ -34,11 +39,12 @@ def create_scheduled_email(email: ScheduledEmailCreate, db: Session = Depends(ge
         email_body=email.email_body,
         sent_status=False
     )
-    
+   
     db.add(db_email)
     db.commit()
     db.refresh(db_email)
     return db_email
+
 
 @router.get("/", response_model=List[ScheduledEmailResponse])
 def get_scheduled_emails(
@@ -51,11 +57,12 @@ def get_scheduled_emails(
     SRS 3.3.3 FR-9: GET /scheduled-emails with filtering
     """
     query = db.query(ScheduledEmail)
-    
+   
     if status_filter is not None:
         query = query.filter(ScheduledEmail.sent_status == status_filter)
-    
+   
     return query.offset(skip).limit(limit).all()
+
 
 @router.post("/send-due-emails")
 def send_due_emails(db: Session = Depends(get_db)):
@@ -64,17 +71,17 @@ def send_due_emails(db: Session = Depends(get_db)):
     On failure: creates ErrorLog + auto-creates ManualReview (SRS 3.2.3 FR-7)
     """
     today = date.today()
-    
+   
     # Find emails due today that haven't been sent
     due_emails = db.query(ScheduledEmail).filter(
         ScheduledEmail.send_date >= datetime.combine(today, datetime.min.time()),
         ScheduledEmail.send_date < datetime.combine(today, datetime.max.time()),
         ScheduledEmail.sent_status == False
     ).all()
-    
+   
     sent_count = 0
     failed_count = 0
-    
+   
     for email_task in due_emails:
         try:
             # Attempt to send email
@@ -84,18 +91,18 @@ def send_due_emails(db: Session = Depends(get_db)):
                 body=email_task.email_body,
                 recipient_name=email_task.recipient_name
             )
-            
+           
             # Mark as successfully sent
             email_task.sent_status = True
             email_task.sent_at = datetime.utcnow()
             email_task.error_message = None
             sent_count += 1
-            
+           
         except Exception as e:
             # Mark task as failed
             email_task.error_message = str(e)
             failed_count += 1
-            
+           
             # 1️⃣ Create Error Log
             error_log = ErrorLog(
                 workflow_type="scheduled_email",
@@ -109,7 +116,7 @@ def send_due_emails(db: Session = Depends(get_db)):
             db.add(error_log)
             db.commit()
             db.refresh(error_log)
-            
+           
             # 2️⃣ Auto-Create Manual Review (SRS 3.2.3 FR-7)
             manual_review = ManualReview(
                 error_log_id=error_log.id,
@@ -119,15 +126,16 @@ def send_due_emails(db: Session = Depends(get_db)):
             )
             db.add(manual_review)
             db.commit()
-        
+       
         # Commit email task status changes
         db.commit()
-    
+   
     return {
         "message": f"Processed {len(due_emails)} emails",
         "sent": sent_count,
         "failed": failed_count
     }
+
 
 def send_email_via_smtp(to_email: str, subject: str, body: str, recipient_name: str):
     """
@@ -137,11 +145,11 @@ def send_email_via_smtp(to_email: str, subject: str, body: str, recipient_name: 
     msg['From'] = EMAIL_USER
     msg['To'] = to_email
     msg['Subject'] = subject
-    
+   
     # Support {{name}} template replacement
     personalized_body = body.replace("{{name}}", recipient_name)
     msg.attach(MIMEText(personalized_body, 'html' if '<' in body else 'plain'))
-    
+   
     # Connect & send
     server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
     server.starttls()
