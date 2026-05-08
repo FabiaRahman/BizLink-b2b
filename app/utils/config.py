@@ -1,3 +1,13 @@
+import os
+print(f"🔍 CWD: {os.getcwd()}")
+print(f"🔍 .env exists: {os.path.exists('.env')}")
+if os.path.exists('.env'):
+    with open('.env', 'r') as f:
+        content = f.read()
+        print(f"🔍 .env has SECRET_KEY: {'SECRET_KEY' in content}")
+        if 'SECRET_KEY' in content:
+            print(f"🔍 SECRET_KEY preview: {content.split('SECRET_KEY=')[1].split()[0][:20]}...")
+            
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import lru_cache
 

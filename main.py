@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from app.database import Base, engine
 from app.routes import orders, refunds, error_logs, manual_reviews, scheduled_emails, leads, auth, users
+from app.routes.dashboard import router as dashboard_router
 
 
 @asynccontextmanager
@@ -32,6 +33,8 @@ app.include_router(leads.router)
 # New Auth & User Management routes
 app.include_router(auth.router)
 app.include_router(users.router)
+
+app.include_router(dashboard_router)
 
 
 @app.get("/", operation_id="root_health_check")
