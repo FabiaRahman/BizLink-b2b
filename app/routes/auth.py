@@ -50,10 +50,13 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
             headers={"WWW-Authenticate": "Bearer"},
         )
    
-    # Use the unified create_access_token
-    access_token_expires = timedelta(minutes=30) # Match ACCESS_TOKEN_EXPIRE_MINUTES
+    # ✅ FIXED: Include user.role in the token data
+    access_token_expires = timedelta(minutes=30)
     access_token = create_access_token(
-        data={"sub": user.email},
+        data={
+            "sub": user.email,
+            "role": user.role  # 👈 Add this line
+        },
         expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
