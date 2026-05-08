@@ -1,23 +1,36 @@
 from pydantic import BaseModel, EmailStr, ConfigDict
 from datetime import datetime
-from typing import Literal
+from typing import Optional
 
-class UserCreate(BaseModel):
+class UserBase(BaseModel):
     username: str
     email: EmailStr
+    role: Optional[str] = "operator"
+
+class UserCreate(UserBase):
     password: str
-    role: Literal["admin", "manager", "operator"] = "operator"
 
-class UserResponse(BaseModel):
+class UserResponse(UserBase):
     id: int
-    username: str
-    email: EmailStr
-    role: Literal["admin", "manager", "operator"]
     is_active: bool
-    created_at: datetime  # Added for audit trails (NFR-09)
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    
+    model_config = ConfigDict(from_attributes=True)
 
-    model_config = ConfigDict(from_attributes=True)  # Pydantic V2 style
+    # =============================================================================
+# Token Schemas (for JWT Authentication)
+# =============================================================================
 
 class Token(BaseModel):
+    """Response schema for login endpoint - SRS 3.1.4"""
     access_token: str
-    token_type: str
+    token_type: str = "bearer"
+    
+    model_config = ConfigDict(from_attributes=True)
+
+
+class TokenData(BaseModel):
+    """Internal schema for decoding JWT payload"""
+    email: str | None = None
+    role: str | None = None
