@@ -4,24 +4,29 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import timedelta
 
+
+# ✅ UPDATE IMPORTS TO USE auth.py INSTEAD OF security.py
 from app.database import get_db
-from app.utils.security import (
+from app.utils.auth import (
     authenticate_user,
     create_access_token,
     get_password_hash,
     get_user_by_email
 )
-from app.utils.config import get_settings
 from app.models.user import User
 from app.schemas.user import UserCreate, UserResponse, Token
 
+
 router = APIRouter(prefix="/auth", tags=["Authentication"])
-settings = get_settings()
+
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def register(user: UserCreate, db: Session = Depends(get_db)):
-    if get_user_by_email(db, user.email):
+    """Register a new user"""
+    db_user = get_user_by_email(db, email=user.email)
+    if db_user:
         raise HTTPException(status_code=400, detail="Email already registered")
+   
     new_user = User(
         username=user.username,
         email=user.email,
@@ -33,8 +38,10 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
     db.refresh(new_user)
     return new_user
 
+
 @router.post("/login", response_model=Token)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    """Login and receive JWT token"""
     user = authenticate_user(db, form_data.username, form_data.password)
     if not user:
         raise HTTPException(
@@ -42,7 +49,9 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+   
+    # Use the unified create_access_token
+    access_token_expires = timedelta(minutes=30) # Match ACCESS_TOKEN_EXPIRE_MINUTES
     access_token = create_access_token(
         data={"sub": user.email},
         expires_delta=access_token_expires
