@@ -18,9 +18,10 @@ class ManualReview(Base):
     workflow_type = Column(String, nullable=False)  # "order", "refund", "lead", "email"
     entity_id = Column(String, nullable=False)      # The specific Order/Refund ID involved
     assigned_reviewer = Column(String, nullable=True)
-    status = Column(SAEnum(ReviewStatus), default=ReviewStatus.pending)
+    # models/manual_review.py - ADD:
+    status = Column(SAEnum(ReviewStatus), default=ReviewStatus.pending, index=True)
     reviewer_notes = Column(String, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
     resolved_at = Column(DateTime, nullable=True)
 
     # Bidirectional relationship to ErrorLog

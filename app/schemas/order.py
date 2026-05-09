@@ -1,12 +1,13 @@
 # app/schemas/order.py
 from pydantic import BaseModel, Field
+from pydantic import field_validator
 from typing import Optional
 from datetime import datetime
 from app.models.order import PaymentStatus, WorkflowStatus
 
 class OrderCreate(BaseModel):
     customer_name: str = Field(..., min_length=2)
-    customer_contact: str
+    customer_contact: str = Field(..., min_length=5, max_length=100)
     product_details: str
     quantity: int = Field(..., gt=0)
     total_price: float = Field(..., gt=0)
