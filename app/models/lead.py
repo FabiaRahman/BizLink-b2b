@@ -15,7 +15,7 @@ class Lead(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255), nullable=False, index=True)
     company = Column(String(255), nullable=True)
-    email = Column(String(255), nullable=False, index=True)
+    email = Column(String(255), nullable=False, index=True)  # Already exists, verify it has index=True
     phone = Column(String(50), nullable=True)
     area_of_interest = Column(String(255), nullable=True)
     source = Column(String(100), nullable=False)

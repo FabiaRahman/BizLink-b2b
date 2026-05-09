@@ -24,12 +24,13 @@ class ErrorLog(Base):
     workflow_type = Column(String, nullable=False)
     workflow_run_id = Column(String, nullable=False, index=True)
     step_name = Column(String, nullable=False)
-    error_type = Column(SAEnum(ErrorType), nullable=False)
+    # models/error_log.py - ADD:
+    error_type = Column(SAEnum(ErrorType), nullable=False, index=True)
     error_message = Column(String, nullable=False)
     http_status_code = Column(Integer, nullable=True)
-    resolution_status = Column(SAEnum(ResolutionStatus), default=ResolutionStatus.unresolved)
+    resolution_status = Column(SAEnum(ResolutionStatus), default=ResolutionStatus.unresolved, index=True)
     resolution_note = Column(String, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
     resolved_at = Column(DateTime, nullable=True)
 
     # ✅ ADD THIS RELATIONSHIP (was missing)

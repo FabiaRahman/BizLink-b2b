@@ -1,9 +1,11 @@
+# app/utils/dependencies.py
 from fastapi import Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import Optional
 import jwt
+from jwt import PyJWTError  # ✅ Use PyJWT instead of jose
 from app.database import get_db
-from app.utils.security import oauth2_scheme
+from app.utils.auth import oauth2_scheme  # ✅ Import from auth.py (not security.py)
 from app.models.user import User
 from app.utils.config import get_settings
 
@@ -28,7 +30,7 @@ async def get_current_user(
         if email is None:
             raise credentials_exception
             
-    except jwt.InvalidTokenError:
+    except PyJWTError:  # ✅ Use PyJWTError instead of InvalidTokenError
         raise credentials_exception
     
     user = db.query(User).filter(User.email == email).first()
@@ -63,7 +65,7 @@ def require_role(allowed_roles: list[str]):
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail=f"Operation not permitted. Required roles: {allowed_roles}. Your role: {user_role}"
                 )
-        except jwt.InvalidTokenError:
+        except PyJWTError:  # ✅ Use PyJWTError
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Could not validate credentials"

@@ -1,3 +1,4 @@
+# app/routes/leads.py
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List, Optional
@@ -7,11 +8,10 @@ import uuid
 from app.database import get_db
 from app.schemas.lead import LeadCreate, LeadResponse, LeadListResponse
 from app.models.lead import Lead, LeadStatus
-from app.utils.error_handler import handle_lead_workflow_error
-from app.utils.notifications import send_slack_lead_notification #joynove have to coment this line
+from app.utils.error_handler import handle_workflow_error  # ✅ UPDATED IMPORT
+# from app.utils.notifications import send_slack_lead_notification  # Commented per your note
 
 router = APIRouter(prefix="/leads", tags=["Lead Capture Workflow"])
-
 DUPLICATE_WINDOW_DAYS = 30
 
 @router.post("/", response_model=LeadResponse, status_code=status.HTTP_201_CREATED)
@@ -28,21 +28,24 @@ async def create_lead(
     ).first()
     
     if existing:
-        error_log, manual_review = handle_lead_workflow_error(
+        # ✅ UPDATED: Use universal handler
+        error_log, manual_review = handle_workflow_error(
             db=db,
-            lead_id=None,
+            workflow_type="lead_capture",
+            entity_id=None,
             step_name="duplicate_detection",
             error_type="duplicate_entry",
             error_message=f"Duplicate: {lead_data.email} exists within {DUPLICATE_WINDOW_DAYS} days",
-            workflow_run_id=None
+            workflow_run_id=None,
+            is_critical=False
         )
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail={
-               "message": "Duplicate lead submission",
+                "message": "Duplicate lead submission",
                 "existing_lead_id": existing.id
             }
-       )
+        )
     
     # === STEP 2: Create Lead Record ===
     try:
@@ -66,13 +69,16 @@ async def create_lead(
         
     except Exception as e:
         db.rollback()
-        error_log, manual_review = handle_lead_workflow_error(
+        # ✅ UPDATED: Use universal handler for DB errors
+        error_log, manual_review = handle_workflow_error(
             db=db,
-            lead_id=None,
+            workflow_type="lead_capture",
+            entity_id=None,
             step_name="database_insert",
-            error_type="api_failure",
+            error_type="api_failure",  # or "database_error"
             error_message=f"DB error: {str(e)}",
-            workflow_run_id=None
+            workflow_run_id=None,
+            is_critical=True  # ✅ Critical = auto-create manual review
         )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -87,17 +93,7 @@ async def create_lead(
         db.rollback()
     
     # === STEP 4: Slack Notification (Background) ===
-        background_tasks.add_task(
-        send_slack_lead_notification,
-        lead_id=new_lead.id,
-        lead_data={
-           "name": new_lead.name,
-           "company": new_lead.company,
-           "email": new_lead.email,
-           "area_of_interest": new_lead.area_of_interest
-        },
-        workflow_run_id=workflow_run_id
-    )
+    # background_tasks.add_task(...)  # Uncomment when notifications.py is ready
     
     try:
         new_lead.status = LeadStatus.notified
@@ -106,6 +102,8 @@ async def create_lead(
         db.rollback()
     
     return new_lead
+
+# ... rest of the file unchanged ...
 
 
 @router.get("/", response_model=List[LeadListResponse])

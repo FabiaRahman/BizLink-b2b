@@ -22,6 +22,9 @@ class WorkflowStatus(str, PyEnum):
     completed = "completed"
     cancelled = "cancelled"
 
+
+   
+
 class Order(Base):
     __tablename__ = "orders"
 
@@ -32,9 +35,9 @@ class Order(Base):
     quantity = Column(Integer, nullable=False)
     total_price = Column(Float, nullable=False)
     payment_method = Column(String, nullable=False)  # ← This was missing!
-    payment_status = Column(SAEnum(PaymentStatus), default=PaymentStatus.pending)
-    workflow_status = Column(SAEnum(WorkflowStatus), default=WorkflowStatus.received)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    payment_status = Column(SAEnum(PaymentStatus), default=PaymentStatus.pending, index=True)
+    workflow_status = Column(SAEnum(WorkflowStatus), default=WorkflowStatus.received, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationship to Refund
