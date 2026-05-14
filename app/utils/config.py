@@ -1,4 +1,8 @@
 import os
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from functools import lru_cache
+
+# Debug: Print environment info on startup
 print(f"🔍 CWD: {os.getcwd()}")
 print(f"🔍 .env exists: {os.path.exists('.env')}")
 if os.path.exists('.env'):
@@ -7,27 +11,35 @@ if os.path.exists('.env'):
         print(f"🔍 .env has SECRET_KEY: {'SECRET_KEY' in content}")
         if 'SECRET_KEY' in content:
             print(f"🔍 SECRET_KEY preview: {content.split('SECRET_KEY=')[1].split()[0][:20]}...")
-            
-from pydantic_settings import BaseSettings, SettingsConfigDict
-from functools import lru_cache
 
 class Settings(BaseSettings):
-    # App
+    # ==================== APP ====================
     APP_NAME: str = "BizLink B2B Workflow Automation"
     APP_VERSION: str = "1.0.0"
     
-    # Database
+    # ==================== DATABASE ====================
     DATABASE_URL: str = "sqlite:///./bizlink.db"
     
-    # Security
+    # ==================== SECURITY ====================
     SECRET_KEY: str
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440  # 24 hours
     
-    # Third-party APIs (optional, for future workflows)
+    # ==================== GMAIL/SMTP ====================
+    SMTP_SERVER: str = "smtp.gmail.com"
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    
+    # ==================== GOOGLE SHEETS ====================
+    GOOGLE_SHEETS_CREDENTIALS_PATH: str = "./config/service_account.json"
+    GOOGLE_SHEETS_SPREADSHEET_ID: str = ""
+    
+    # ==================== SLACK ====================
+    SLACK_WEBHOOK_URL: str = ""
+    
+    # ==================== WHATSAPP (Optional) ====================
     WHATSAPP_API_TOKEN: str | None = None
-    SLACK_WEBHOOK_URL: str | None = None
-    GOOGLE_SERVICE_ACCOUNT_KEY: str | None = None
 
     # Pydantic V2 config
     model_config = SettingsConfigDict(
