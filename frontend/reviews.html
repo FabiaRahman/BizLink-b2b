@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BizLink - Manual Reviews</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        biz: {
+                            bg: '#0f1419', card: '#161b22', border: '#21262d', sidebar: '#0d1117',
+                            primary: '#22c55e', primaryDark: '#16a34a', text: '#e6edf3', muted: '#8b949e'
+                        }
+                    },
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #8b949e;
+            border-left: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .nav-link:hover {
+            background-color: #161b22;
+            color: #e6edf3;
+        }
+
+        .nav-link.active {
+            background-color: #161b22;
+            color: #22c55e;
+            border-left-color: #22c55e;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0f1419;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #21262d;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body class="bg-biz-bg text-biz-text font-sans flex h-screen overflow-hidden">
+    <aside class="w-64 bg-biz-sidebar border-r border-biz-border flex flex-col flex-shrink-0">
+        <div class="h-16 flex items-center px-6 border-b border-biz-border">
+            <span class="text-xl font-bold text-biz-primary">Biz<span class="text-white">Link</span></span>
+        </div>
+        <nav class="flex-1 py-4 overflow-y-auto"></nav>
+        <div class="p-4 border-t border-biz-border bg-biz-sidebar">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <div class="w-8 h-8 rounded-full bg-biz-primary flex items-center justify-center text-xs font-bold text-white"
+                        id="user-avatar">U</div>
+                    <div class="ml-3">
+                        <p class="text-sm font-medium text-white" id="user-name">User</p>
+                        <p class="text-xs text-biz-muted" id="user-role">Workspace</p>
+                    </div>
+                </div>
+                <button onclick="BizLinkAuth.logout()" class="text-biz-muted hover:text-red-400 text-sm">Logout</button>
+            </div>
+        </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col overflow-hidden">
+        <header class="h-16 bg-biz-card border-b border-biz-border flex justify-between items-center px-6">
+            <h2 class="text-lg font-semibold">Manual Review Queue</h2>
+            <button onclick="loadReviews()"
+                class="px-4 py-2 bg-biz-primary hover:bg-biz-primaryDark text-white rounded-lg text-sm font-medium transition">Refresh
+                Queue</button>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-6">
+            <div id="queue-container" class="grid grid-cols-1 gap-4">
+                <div class="text-center py-12 text-biz-muted">Loading pending reviews...</div>
+            </div>
+        </div>
+    </main>
+
+    <!-- ✅ VIEW DETAILS MODAL -->
+    <div id="details-modal" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50">
+        <div
+            class="bg-biz-card border border-biz-border rounded-xl p-0 w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl">
+            <!-- Modal Header -->
+            <div class="bg-biz-bg border-b border-biz-border p-6 flex justify-between items-center">
+                <div>
+                    <h3 class="text-xl font-bold text-white">Review Details <span
+                            class="text-biz-muted text-sm font-normal ml-2" id="modal-review-id"></span></h3>
+                    <p class="text-sm text-biz-muted mt-1">Linked Order: <span class="text-white font-bold"
+                            id="modal-linked-order"></span></p>
+                </div>
+                <button onclick="closeDetailsModal()" class="text-biz-muted hover:text-white text-2xl">&times;</button>
+            </div>
+
+            <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Left: Review Details -->
+                <div class="space-y-6">
+                    <div class="bg-biz-bg p-4 rounded-lg border border-biz-border">
+                        <h4 class="text-sm font-semibold text-biz-muted uppercase mb-3">Review Details</h4>
+                        <div class="space-y-3 text-sm">
+                            <div><span class="text-biz-muted">Reason for review:</span>
+                                <p class="text-red-400 font-medium mt-1" id="modal-reason"></p>
+                            </div>
+                            <div><span class="text-biz-muted">Workflow type:</span>
+                                <p class="text-white capitalize mt-1" id="modal-type"></p>
+                            </div>
+                            <div><span class="text-biz-muted">Created at:</span>
+                                <p class="text-white mt-1" id="modal-created"></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-biz-bg p-4 rounded-lg border border-biz-border">
+                        <h4 class="text-sm font-semibold text-biz-muted uppercase mb-3">Workflow Context</h4>
+                        <div class="relative pl-4 border-l-2 border-biz-border space-y-6 ml-2">
+                            <div class="relative">
+                                <div
+                                    class="absolute -left-[21px] top-1 w-3 h-3 rounded-full bg-biz-primary border-2 border-biz-bg">
+                                </div>
+                                <p class="text-sm text-white font-medium">Order Received</p>
+                                <p class="text-xs text-biz-muted mt-0.5" id="modal-timestamp"></p>
+                            </div>
+                            <div class="relative">
+                                <div
+                                    class="absolute -left-[21px] top-1 w-3 h-3 rounded-full bg-biz-primary border-2 border-biz-bg">
+                                </div>
+                                <p class="text-sm text-white font-medium">Payment Validation Failed</p>
+                                <p class="text-xs text-red-400 mt-0.5">Exception Detected</p>
+                            </div>
+                            <div class="relative">
+                                <div
+                                    class="absolute -left-[21px] top-1 w-3 h-3 rounded-full bg-yellow-400 border-2 border-biz-bg">
+                                </div>
+                                <p class="text-sm text-white font-medium">Workflow Paused</p>
+                                <p class="text-xs text-yellow-400 mt-0.5">Waiting for review</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Actions -->
+                <div class="space-y-6">
+                    <div class="bg-biz-bg p-4 rounded-lg border border-biz-border h-full flex flex-col justify-center">
+                        <h4 class="text-sm font-semibold text-biz-muted uppercase mb-4 text-center">Action Required</h4>
+                        <p class="text-sm text-biz-muted text-center mb-6">Please review the error context and approve
+                            to resume the workflow, or reject to cancel it.</p>
+
+                        <div class="space-y-3">
+                            <button onclick="openApproveModal()"
+                                class="w-full py-3 bg-biz-primary hover:bg-biz-primaryDark text-white rounded-lg font-bold transition flex items-center justify-center gap-2">
+                                <span>✓</span> Approve & Resume Workflow
+                            </button>
+                            <button onclick="openRejectModal()"
+                                class="w-full py-3 bg-red-900/30 hover:bg-red-900/50 text-red-400 border border-red-500 rounded-lg font-bold transition flex items-center justify-center gap-2">
+                                <span>✕</span> Reject & Cancel Workflow
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ✅ APPROVE MODAL -->
+    <div id="approve-modal" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-[60]">
+        <div
+            class="bg-biz-card border border-biz-primary rounded-xl p-6 w-full max-w-md shadow-2xl shadow-biz-primary/20">
+            <h3 class="text-lg font-bold text-white mb-2">Approve this review item?</h3>
+            <p class="text-sm text-biz-muted mb-4">This will resume the paused workflow.</p>
+            <textarea id="approve-notes" rows="3"
+                class="w-full p-3 bg-biz-bg border border-biz-border rounded-lg text-white mb-4 focus:border-biz-primary focus:outline-none"
+                placeholder="Add a note (optional)..."></textarea>
+            <div class="flex gap-3 justify-end">
+                <button onclick="closeApproveModal()"
+                    class="px-4 py-2 text-biz-muted hover:text-white transition">Cancel</button>
+                <button onclick="confirmApprove()"
+                    class="px-4 py-2 bg-biz-primary hover:bg-biz-primaryDark text-white rounded-lg font-bold transition">Confirm
+                    Approve</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ✅ REJECT MODAL -->
+    <div id="reject-modal" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-[60]">
+        <div class="bg-biz-card border border-red-500 rounded-xl p-6 w-full max-w-md shadow-2xl shadow-red-500/20">
+            <h3 class="text-lg font-bold text-white mb-2">Reject this review item?</h3>
+            <p class="text-sm text-biz-muted mb-4">This will permanently cancel the workflow.</p>
+            <textarea id="reject-notes" rows="3"
+                class="w-full p-3 bg-biz-bg border border-biz-border rounded-lg text-white mb-4 focus:border-red-500 focus:outline-none"
+                placeholder="Reason for rejection..."></textarea>
+            <div class="flex gap-3 justify-end">
+                <button onclick="closeRejectModal()"
+                    class="px-4 py-2 text-biz-muted hover:text-white transition">Cancel</button>
+                <button onclick="confirmReject()"
+                    class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-bold transition">Confirm
+                    Reject</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/navigation.js"></script>
+    <script>
+        let currentReviewId = null;
+
+        document.addEventListener('DOMContentLoaded', function () {
+            if (!BizLinkAuth.checkAuth()) return;
+            BizLinkNav.init();
+            loadReviews();
+        });
+
+        async function loadReviews() {
+            const container = document.getElementById('queue-container');
+            container.innerHTML = '<div class="text-center py-12 text-biz-muted">Loading...</div>';
+            try {
+                const reviews = await BizLinkAPI.call('/manual-reviews?status=pending');
+                container.innerHTML = '';
+                if (!reviews || reviews.length === 0) {
+                    container.innerHTML = '<div class="p-8 text-center text-biz-muted bg-biz-card rounded-lg border border-biz-border">No pending reviews. All caught up! 🎉</div>';
+                    return;
+                }
+                reviews.forEach(review => {
+                    // ✅ FIX: Handle undefined values and format linked order ID
+                    const linkedOrderId = review.entity_id && review.entity_id !== "unknown" ? `#${review.entity_id}` : "Unknown";
+                    const reason = review.error_type || "Payment Validation Failed";
+                    const message = review.error_message || "No message";
+                    const created = review.created_at ? new Date(review.created_at).toLocaleString() : "Unknown";
+
+                    container.innerHTML += `
+                        <div class="bg-biz-card p-6 rounded-lg border border-biz-border shadow flex flex-col md:flex-row justify-between items-start md:items-center gap-4 hover:border-biz-muted transition">
+                            <div class="flex-1">
+                                <div class="flex items-center gap-3 mb-2">
+                                    <span class="px-2 py-1 rounded text-xs font-bold bg-yellow-900/30 text-yellow-400">ORDER</span>
+                                    <span class="text-biz-muted text-sm">ID: #${review.id}</span>
+                                    <span class="text-biz-primary text-xs font-bold ml-2 border border-biz-primary px-2 py-0.5 rounded">Linked Order ${linkedOrderId}</span>
+                                </div>
+                                <h3 class="text-lg font-medium text-white">Reason: <span class="text-red-400">${reason}</span></h3>
+                                <p class="text-biz-muted text-sm mt-1">${message}</p>
+                                <p class="text-biz-muted text-xs mt-2">Created: ${created}</p>
+                            </div>
+                            <div class="flex gap-3 flex-shrink-0">
+                                <button onclick="openDetailsModal(${review.id}, '${reason}', '${review.entity_id}', '${created}')" class="px-4 py-2 rounded border border-biz-primary text-biz-primary hover:bg-biz-primary/20 transition text-sm font-medium">View Details</button>
+                            </div>
+                        </div>`;
+                });
+            } catch (err) {
+                console.error('Failed to load reviews:', err);
+                container.innerHTML = `<div class="p-8 text-center text-yellow-400 bg-biz-card rounded-lg border border-biz-border">Error loading reviews. Ensure backend is running.</div>`;
+            }
+        }
+
+        // ✅ MODAL LOGIC
+        function openDetailsModal(id, reason, orderId, created) {
+            currentReviewId = id;
+            document.getElementById('modal-review-id').textContent = `#${id}`;
+            document.getElementById('modal-linked-order').textContent = `#${orderId}`;
+            document.getElementById('modal-reason').textContent = reason;
+            document.getElementById('modal-created').textContent = created;
+
+            document.getElementById('details-modal').classList.remove('hidden');
+            document.getElementById('details-modal').classList.add('flex');
+        }
+
+        function closeDetailsModal() {
+            document.getElementById('details-modal').classList.add('hidden');
+            document.getElementById('details-modal').classList.remove('flex');
+        }
+
+        function openApproveModal() {
+            document.getElementById('approve-modal').classList.remove('hidden');
+            document.getElementById('approve-modal').classList.add('flex');
+        }
+        function closeApproveModal() {
+            document.getElementById('approve-modal').classList.add('hidden');
+            document.getElementById('approve-modal').classList.remove('flex');
+        }
+
+        function openRejectModal() {
+            document.getElementById('reject-modal').classList.remove('hidden');
+            document.getElementById('reject-modal').classList.add('flex');
+        }
+        function closeRejectModal() {
+            document.getElementById('reject-modal').classList.add('hidden');
+            document.getElementById('reject-modal').classList.remove('flex');
+        }
+
+        async function confirmApprove() {
+            const notes = document.getElementById('approve-notes').value;
+            try {
+                await BizLinkAPI.call(`/manual-reviews/${currentReviewId}/approve`, {
+                    method: 'POST',
+                    body: JSON.stringify({ reviewer_notes: notes })
+                });
+
+                // ✅ SUCCESS: Redirect to Orders page to see the status change
+                alert('Review Approved! Taking you to Orders...');
+                window.location.href = 'orders.html';
+            } catch (err) {
+                alert('Failed to approve: ' + err.message);
+            }
+        }
+
+        async function confirmReject() {
+            const notes = document.getElementById('reject-notes').value;
+            try {
+                await BizLinkAPI.call(`/manual-reviews/${currentReviewId}/reject`, {
+                    method: 'POST',
+                    body: JSON.stringify({ reviewer_notes: notes })
+                });
+
+                // ✅ SUCCESS: Redirect to Orders page
+                alert('Review Rejected! Taking you to Orders...');
+                window.location.href = 'orders.html';
+            } catch (err) {
+                alert('Failed to reject: ' + err.message);
+            }
+        }
+    </script>
+</body>
+
+</html>
