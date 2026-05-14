@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BizLink - Settings</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        biz: {
+                            bg: '#0f1419',
+                            card: '#161b22',
+                            border: '#21262d',
+                            sidebar: '#0d1117',
+                            primary: '#22c55e',
+                            primaryDark: '#16a34a',
+                            text: '#e6edf3',
+                            muted: '#8b949e'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #8b949e;
+            border-left: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .nav-link:hover {
+            background-color: #161b22;
+            color: #e6edf3;
+        }
+
+        .nav-link.active {
+            background-color: #161b22;
+            color: #22c55e;
+            border-left-color: #22c55e;
+        }
+
+        .tab-btn {
+            padding: 0.75rem 1rem;
+            border-bottom: 2px solid transparent;
+            font-weight: 500;
+            transition: all 0.2s;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .tab-btn.active {
+            border-bottom-color: #22c55e;
+            color: #22c55e;
+        }
+
+        .tab-btn:not(.active) {
+            color: #8b949e;
+        }
+
+        .tab-btn:not(.active):hover {
+            color: #e6edf3;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 40px;
+            height: 24px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #334155;
+            transition: .4s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked+.slider {
+            background-color: #22c55e;
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(16px);
+        }
+    </style>
+</head>
+
+<body class="bg-biz-bg text-biz-text font-sans flex h-screen">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-biz-sidebar border-r border-biz-border flex flex-col">
+        <div class="h-16 flex items-center px-6 border-b border-biz-border">
+            <span class="text-xl font-bold text-biz-primary">Biz<span class="text-white">Link</span></span>
+        </div>
+        <nav class="flex-1 py-4 overflow-y-auto"></nav>
+        <div class="p-4 border-t border-biz-border bg-biz-sidebar">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <div class="w-8 h-8 rounded-full bg-biz-primary flex items-center justify-center text-xs font-bold text-black"
+                        id="user-avatar">U</div>
+                    <div class="ml-3">
+                        <p class="text-sm font-medium text-white" id="user-name">User</p>
+                        <p class="text-xs text-biz-muted" id="user-role">Workspace</p>
+                    </div>
+                </div>
+                <button onclick="BizLinkAuth.logout()" class="text-biz-muted hover:text-red-400 text-sm">Logout</button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col overflow-hidden">
+        <header class="h-16 bg-biz-card border-b border-biz-border flex justify-between items-center px-6">
+            <h2 class="text-lg font-semibold">Settings</h2>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-8">
+            <h3 class="text-xl font-bold mb-2">Profile management and configuration</h3>
+
+            <!-- Tabs -->
+            <div class="flex gap-2 mb-8 border-b border-biz-border pb-2 mt-6 overflow-x-auto">
+                <button onclick="switchTab('profile')" class="tab-btn active" id="tab-profile"
+                    data-role="admin,manager,operator">My Profile</button>
+                <button onclick="switchTab('notification')" class="tab-btn" id="tab-notification"
+                    data-role="admin,manager,operator">Notifications</button>
+                <button onclick="switchTab('security')" class="tab-btn" id="tab-security"
+                    data-role="admin,manager,operator">Security</button>
+                <button onclick="switchTab('integrations')" class="tab-btn admin-only" id="tab-integrations"
+                    data-role="admin,manager">Integrations</button>
+                <button onclick="switchTab('workflow')" class="tab-btn admin-only" id="tab-workflow"
+                    data-role="admin">Workflow Rules</button>
+                <button onclick="switchTab('team')" class="tab-btn admin-only" id="tab-team" data-role="admin">Team
+                    Management</button>
+            </div>
+
+            <!-- Profile Tab -->
+            <div id="content-profile" class="max-w-2xl">
+                <div class="bg-biz-card p-6 rounded-xl border border-biz-border">
+                    <div class="flex items-center gap-4 mb-6">
+                        <div class="w-16 h-16 rounded-full bg-biz-primary flex items-center justify-center text-2xl font-bold text-black"
+                            id="settings-avatar">U</div>
+                        <div>
+                            <h4 class="font-semibold text-white" id="settings-username">User Name</h4>
+                            <p class="text-sm text-biz-muted" id="settings-email">user@example.com</p>
+                            <span class="inline-block px-2 py-1 bg-biz-border rounded text-xs mt-1 capitalize"
+                                id="settings-role">operator</span>
+                        </div>
+                    </div>
+                    <form id="profile-form" class="space-y-4">
+                        <div>
+                            <label class="block text-sm text-biz-muted mb-2">Full Name</label>
+                            <input type="text" id="profile-name"
+                                class="w-full p-3 bg-biz-bg border border-biz-border rounded-lg text-white focus:border-biz-primary focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-biz-muted mb-2">Email Address</label>
+                            <input type="email" id="profile-email" disabled
+                                class="w-full p-3 bg-biz-bg border border-biz-border rounded-lg text-biz-muted cursor-not-allowed">
+                            <p class="text-xs text-biz-muted mt-1">Email cannot be changed. Contact admin to update.</p>
+                        </div>
+                        <div class="flex gap-3 pt-4">
+                            <button type="submit"
+                                class="px-6 py-2 bg-biz-primary hover:bg-biz-primaryDark text-white rounded-lg font-medium transition">Save
+                                Changes</button>
+                            <button type="button" onclick="cancelProfileEdit()"
+                                class="px-6 py-2 bg-biz-card border border-biz-border hover:border-biz-primary text-biz-text rounded-lg font-medium transition">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Notifications Tab -->
+            <div id="content-notification" class="max-w-2xl hidden">
+                <div class="bg-biz-card p-6 rounded-xl border border-biz-border space-y-4">
+                    <h4 class="font-semibold text-white mb-4">Notification Preferences</h4>
+                    <div class="flex items-center justify-between py-3 border-b border-biz-border">
+                        <div>
+                            <p class="font-medium text-white">Email Notifications</p>
+                            <p class="text-xs text-biz-muted">Receive system updates via email</p>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="notif-email" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="flex items-center justify-between py-3 border-b border-biz-border">
+                        <div>
+                            <p class="font-medium text-white">Order Status Changes</p>
+                            <p class="text-xs text-biz-muted">Get notified when order status changes</p>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="notif-order" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="flex items-center justify-between py-3 border-b border-biz-border">
+                        <div>
+                            <p class="font-medium text-white">Error Alerts</p>
+                            <p class="text-xs text-biz-muted">Receive alerts when workflow errors occur</p>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="notif-error" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="flex items-center justify-between py-3 border-b border-biz-border">
+                        <div>
+                            <p class="font-medium text-white">Manual Review Requests</p>
+                            <p class="text-xs text-biz-muted">Get notified when items need your approval</p>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="notif-review" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="flex items-center justify-between py-3">
+                        <div>
+                            <p class="font-medium text-white">Weekly Summary</p>
+                            <p class="text-xs text-biz-muted">Receive weekly performance reports</p>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="notif-weekly">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <button onclick="saveNotifications()"
+                        class="mt-6 px-6 py-2 bg-biz-primary hover:bg-biz-primaryDark text-white rounded-lg font-medium transition">Save
+                        Preferences</button>
+                </div>
+            </div>
+
+            <!-- Security Tab -->
+            <div id="content-security" class="max-w-2xl hidden">
+                <div class="bg-biz-card p-6 rounded-xl border border-biz-border space-y-6">
+                    <div>
+                        <h4 class="font-semibold text-white mb-4">Change Password</h4>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm text-biz-muted mb-2">Current Password</label>
+                                <input type="password" id="current-password"
+                                    class="w-full p-3 bg-biz-bg border border-biz-border rounded-lg text-white focus:border-biz-primary focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-sm text-biz-muted mb-2">New Password</label>
+                                <input type="password" id="new-password"
+                                    class="w-full p-3 bg-biz-bg border border-biz-border rounded-lg text-white focus:border-biz-primary focus:outline-none">
+                                <p class="text-xs text-biz-muted mt-1">Minimum 6 characters</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm text-biz-muted mb-2">Confirm New Password</label>
+                                <input type="password" id="confirm-password"
+                                    class="w-full p-3 bg-biz-bg border border-biz-border rounded-lg text-white focus:border-biz-primary focus:outline-none">
+                            </div>
+                            <button onclick="changePassword()"
+                                class="px-6 py-2 bg-biz-primary hover:bg-biz-primaryDark text-white rounded-lg font-medium transition">Update
+                                Password</button>
+                        </div>
+                    </div>
+                    <div class="border-t border-biz-border pt-6">
+                        <h4 class="font-semibold text-white mb-4">Active Sessions</h4>
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between p-3 bg-biz-bg rounded-lg">
+                                <div>
+                                    <p class="text-sm font-medium text-white">Current Session</p>
+                                    <p class="text-xs text-biz-muted">Started: Just now • Chrome on Windows</p>
+                                </div>
+                                <span class="px-2 py-1 bg-green-900/30 text-green-400 text-xs rounded">Active</span>
+                            </div>
+                        </div>
+                        <button onclick="logoutAllSessions()"
+                            class="mt-4 px-4 py-2 text-red-400 border border-red-500 hover:bg-red-500/20 rounded-lg text-sm transition">Logout
+                            All Other Sessions</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Integrations Tab (Admin/Manager) -->
+            <div id="content-integrations" class="max-w-3xl hidden">
+                <div class="bg-biz-card p-6 rounded-xl border border-biz-border space-y-6">
+                    <h4 class="font-semibold text-white">Connected Services</h4>
+                    <div class="space-y-4">
+                        <div class="p-4 bg-biz-bg rounded-lg border border-biz-border">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="flex items-center gap-3">
+                                    <div
+                                        class="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center text-white font-bold">
+                                        G</div>
+                                    <div>
+                                        <p class="font-medium text-white">Gmail / SMTP</p>
+                                        <p class="text-xs text-biz-muted">Email notifications and scheduled campaigns
+                                        </p>
+                                    </div>
+                                </div>
+                                <span
+                                    class="px-3 py-1 bg-green-900/30 text-green-400 text-xs rounded-full">Connected</span>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="configureIntegration('gmail')"
+                                    class="px-4 py-2 text-sm bg-biz-card border border-biz-border hover:border-biz-primary rounded transition">Configure</button>
+                                <button onclick="testIntegration('gmail')"
+                                    class="px-4 py-2 text-sm text-biz-primary hover:underline">Test Connection</button>
+                            </div>
+                        </div>
+                        <div class="p-4 bg-biz-bg rounded-lg border border-biz-border">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="flex items-center gap-3">
+                                    <div
+                                        class="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center text-white font-bold">
+                                        W</div>
+                                    <div>
+                                        <p class="font-medium text-white">WhatsApp Business API</p>
+                                        <p class="text-xs text-biz-muted">Customer order confirmations and alerts</p>
+                                    </div>
+                                </div>
+                                <span class="px-3 py-1 bg-yellow-900/30 text-yellow-400 text-xs rounded-full">Pending
+                                    Setup</span>
+                            </div>
+                            <button onclick="configureIntegration('whatsapp')"
+                                class="px-4 py-2 text-sm bg-biz-primary hover:bg-biz-primaryDark text-white rounded transition">Setup
+                                WhatsApp</button>
+                        </div>
+                        <div class="p-4 bg-biz-bg rounded-lg border border-biz-border">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="flex items-center gap-3">
+                                    <div
+                                        class="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center text-white font-bold">
+                                        S</div>
+                                    <div>
+                                        <p class="font-medium text-white">Slack</p>
+                                        <p class="text-xs text-biz-muted">Lead notifications and team alerts</p>
+                                    </div>
+                                </div>
+                                <span
+                                    class="px-3 py-1 bg-green-900/30 text-green-400 text-xs rounded-full">Connected</span>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="configureIntegration('slack')"
+                                    class="px-4 py-2 text-sm bg-biz-card border border-biz-border hover:border-biz-primary rounded transition">Configure</button>
+                                <button onclick="testIntegration('slack')"
+                                    class="px-4 py-2 text-sm text-biz-primary hover:underline">Test Webhook</button>
+                            </div>
+                        </div>
+                        <div class="p-4 bg-biz-bg rounded-lg border border-biz-border">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="flex items-center gap-3">
+                                    <div
+                                        class="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center text-white font-bold">
+                                        📊</div>
+                                    <div>
+                                        <p class="font-medium text-white">Google Sheets</p>
+                                        <p class="text-xs text-biz-muted">Scheduled email campaigns and data imports</p>
+                                    </div>
+                                </div>
+                                <span class="px-3 py-1 bg-yellow-900/30 text-yellow-400 text-xs rounded-full">Pending
+                                    Setup</span>
+                            </div>
+                            <button onclick="configureIntegration('sheets')"
+                                class="px-4 py-2 text-sm bg-biz-primary hover:bg-biz-primaryDark text-white rounded transition">Connect
+                                Google Sheets</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Workflow Rules Tab (Admin Only) -->
+            <div id="content-workflow" class="max-w-2xl hidden">
+                <div class="bg-biz-card p-6 rounded-xl border border-biz-border space-y-6">
+                    <h4 class="font-semibold text-white">Automation Rules</h4>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm text-biz-muted mb-2">Refund Approval Time Limit (hours)</label>
+                            <input type="number" id="refund-limit" value="72" min="1" max="720"
+                                class="w-full p-3 bg-biz-bg border border-biz-border rounded-lg text-white focus:border-biz-primary focus:outline-none">
+                            <p class="text-xs text-biz-muted mt-1">Refunds requested after this period require manual
+                                approval</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm text-biz-muted mb-2">Order Duplicate Check Window
+                                (minutes)</label>
+                            <input type="number" id="duplicate-window" value="30" min="1" max="1440"
+                                class="w-full p-3 bg-biz-bg border border-biz-border rounded-lg text-white focus:border-biz-primary focus:outline-none">
+                            <p class="text-xs text-biz-muted mt-1">Flag orders from same customer within this window as
+                                potential duplicates</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm text-biz-muted mb-2">Auto-Retry Failed Notifications</label>
+                            <select id="retry-policy"
+                                class="w-full p-3 bg-biz-bg border border-biz-border rounded-lg text-white focus:border-biz-primary focus:outline-none">
+                                <option value="3">Retry 3 times (recommended)</option>
+                                <option value="1">Retry once</option>
+                                <option value="5">Retry 5 times</option>
+                                <option value="0">No retry - fail immediately</option>
+                            </select>
+                        </div>
+                        <div class="flex items-center justify-between py-3 border-t border-biz-border">
+                            <div>
+                                <p class="font-medium text-white">Require Manual Approval for Payments</p>
+                                <p class="text-xs text-biz-muted">All payment-related actions need human approval before
+                                    execution</p>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" id="payment-approval" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                    <button onclick="saveWorkflowSettings()"
+                        class="mt-6 px-6 py-2 bg-biz-primary hover:bg-biz-primaryDark text-white rounded-lg font-medium transition">Save
+                        Workflow Rules</button>
+                </div>
+            </div>
+
+            <!-- Team Management Tab (Admin Only) -->
+            <div id="content-team" class="hidden">
+                <div class="bg-biz-card p-6 rounded-xl border border-biz-border">
+                    <div class="flex justify-between items-center mb-6">
+                        <h4 class="font-semibold text-white">Team Members</h4>
+                        <button onclick="openInviteModal()"
+                            class="px-4 py-2 bg-biz-primary hover:bg-biz-primaryDark text-white rounded-lg text-sm font-medium transition">+
+                            Invite Member</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm text-biz-muted">
+                            <thead class="bg-biz-bg text-xs uppercase">
+                                <tr>
+                                    <th class="px-4 py-3">Member</th>
+                                    <th class="px-4 py-3">Role</th>
+                                    <th class="px-4 py-3">Status</th>
+                                    <th class="px-4 py-3">Last Active</th>
+                                    <th class="px-4 py-3">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-biz-border" id="team-list">
+                                <tr>
+                                    <td colspan="5" class="px-4 py-8 text-center text-biz-muted">Loading team members...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Invite Modal -->
+    <div id="invite-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+        <div class="bg-biz-card border border-biz-border rounded-xl p-6 w-full max-w-md">
+            <h4 class="font-semibold text-white mb-4">Invite Team Member</h4>
+            <form id="invite-form" class="space-y-4">
+                <div>
+                    <label class="block text-sm text-biz-muted mb-2">Email Address</label>
+                    <input type="email" id="invite-email" required
+                        class="w-full p-3 bg-biz-bg border border-biz-border rounded-lg text-white focus:border-biz-primary focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm text-biz-muted mb-2">Role</label>
+                    <select id="invite-role"
+                        class="w-full p-3 bg-biz-bg border border-biz-border rounded-lg text-white focus:border-biz-primary focus:outline-none">
+                        <option value="operator">Operator - Execute tasks</option>
+                        <option value="manager">Manager - Review and approve</option>
+                        <option value="admin">Admin - Full access</option>
+                    </select>
+                </div>
+                <div class="flex gap-3 pt-4">
+                    <button type="submit"
+                        class="flex-1 px-4 py-2 bg-biz-primary hover:bg-biz-primaryDark text-white rounded-lg font-medium transition">Send
+                        Invite</button>
+                    <button type="button" onclick="closeInviteModal()"
+                        class="flex-1 px-4 py-2 bg-biz-card border border-biz-border hover:border-biz-primary text-biz-text rounded-lg font-medium transition">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/navigation.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            if (!BizLinkAuth.checkAuth()) return;
+            BizLinkNav.init();
+
+            const user = BizLinkAuth.getUser();
+            const role = user.role || 'operator';
+
+            // Load user data
+            // Optional: Try to load profile from backend, fallback to local if fails
+            (async function loadProfileFromBackend() {
+                try {
+                    const token = localStorage.getItem('bizlink_token');
+                    const res = await fetch('http://127.0.0.1:8000/api/settings/profile', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        // Update UI with backend data
+                        document.getElementById('settings-username').textContent = data.username || user.name;
+                        document.getElementById('settings-email').textContent = data.email || user.email;
+                        document.getElementById('profile-name').value = data.username || user.name || '';
+                        document.getElementById('profile-email').value = data.email || user.email || '';
+                    }
+                } catch (e) {
+                    console.log('Using local profile data (backend not available)');
+                    // localStorage already loaded, so no action needed
+                }
+            })();
+            document.getElementById('settings-username').textContent = user.name || 'User';
+            document.getElementById('settings-email').textContent = user.email || '';
+            document.getElementById('settings-role').textContent = role;
+            document.getElementById('settings-avatar').textContent = BizLinkNav.getInitials(user.name);
+            document.getElementById('profile-name').value = user.name || '';
+            document.getElementById('profile-email').value = user.email || '';
+
+            // Load saved settings from localStorage
+            loadSettings(role);
+
+            // Apply role-based visibility
+            applyRoleVisibility(role);
+
+            // Profile form submit
+            document.getElementById('profile-form').addEventListener('submit', async (e) => {  // ✅ Added 'async'
+                e.preventDefault();
+                const newName = document.getElementById('profile-name').value;
+
+                // Update localStorage
+                user.name = newName;
+                localStorage.setItem('bizlink_user', JSON.stringify(user));
+
+                // Update UI
+                BizLinkNav.initUserProfile(user);
+                document.getElementById('settings-username').textContent = newName;
+
+                // Save to localStorage settings
+                saveSettings(role);
+
+                // Optional: Try to save to backend
+                try {
+                    const token = localStorage.getItem('bizlink_token');
+                    await fetch('http://127.0.0.1:8000/api/settings/profile', {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ username: newName })
+                    });
+                } catch (e) {
+                    console.log('Backend save failed, using localStorage only');
+                }
+                // Then show success alert
+                alert('Profile updated successfully!');
+            });
+
+            // Tab switching function
+            window.switchTab = function (tabId) {
+                // Hide all tabs
+                ['profile', 'notification', 'security', 'integrations', 'workflow', 'team'].forEach(id => {
+                    const content = document.getElementById('content-' + id);
+                    if (content) content.classList.add('hidden');
+                });
+
+                // Remove active class from all buttons
+                document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+
+                // Show selected tab
+                const selectedContent = document.getElementById('content-' + tabId);
+                const selectedBtn = document.getElementById('tab-' + tabId);
+
+                if (selectedContent && selectedBtn) {
+                    selectedContent.classList.remove('hidden');
+                    selectedBtn.classList.add('active');
+
+                    // Save active tab to localStorage
+                    localStorage.setItem(`settings_active_tab_${role}`, tabId);
+                }
+            };
+
+            // Save notifications
+            window.saveNotifications = function () {
+                const settings = {
+                    email: document.getElementById('notif-email').checked,
+                    order: document.getElementById('notif-order').checked,
+                    error: document.getElementById('notif-error').checked,
+                    review: document.getElementById('notif-review').checked,
+                    weekly: document.getElementById('notif-weekly').checked
+                };
+                localStorage.setItem(`settings_notifications_${role}`, JSON.stringify(settings));
+                alert('Notification preferences saved!');
+            };
+
+            // Change password
+            window.changePassword = function () {
+                const current = document.getElementById('current-password').value;
+                const newPass = document.getElementById('new-password').value;
+                const confirm = document.getElementById('confirm-password').value;
+
+                if (!current || !newPass || !confirm) {
+                    alert('Please fill in all fields');
+                    return;
+                }
+                if (newPass.length < 6) {
+                    alert('Password must be at least 6 characters');
+                    return;
+                }
+                if (newPass !== confirm) {
+                    alert('New passwords do not match');
+                    return;
+                }
+
+                // In production, this would call API
+                alert('Password updated successfully!');
+                document.getElementById('current-password').value = '';
+                document.getElementById('new-password').value = '';
+                document.getElementById('confirm-password').value = '';
+            };
+
+            // Logout all sessions
+            window.logoutAllSessions = function () {
+                if (confirm('Logout from all other devices?')) {
+                    alert('All other sessions logged out.');
+                }
+            };
+
+            // Cancel profile edit
+            window.cancelProfileEdit = function () {
+                document.getElementById('profile-name').value = user.name || '';
+            };
+
+            // Configure integration
+            window.configureIntegration = function (service) {
+                alert(`Configuring ${service} integration...`);
+            };
+
+            // Test integration
+            window.testIntegration = function (service) {
+                alert(`Testing ${service} connection... ✅`);
+            };
+
+            // Save workflow settings
+            window.saveWorkflowSettings = function () {
+                const settings = {
+                    refundLimit: document.getElementById('refund-limit').value,
+                    duplicateWindow: document.getElementById('duplicate-window').value,
+                    retryPolicy: document.getElementById('retry-policy').value,
+                    paymentApproval: document.getElementById('payment-approval').checked
+                };
+                localStorage.setItem(`settings_workflow_${role}`, JSON.stringify(settings));
+                alert('Workflow rules saved successfully!');
+            };
+
+            // Invite modal functions
+            window.openInviteModal = function () {
+                document.getElementById('invite-modal').classList.remove('hidden');
+                document.getElementById('invite-modal').classList.add('flex');
+            };
+
+            window.closeInviteModal = function () {
+                document.getElementById('invite-modal').classList.add('hidden');
+                document.getElementById('invite-modal').classList.remove('flex');
+                document.getElementById('invite-form').reset();
+            };
+
+            document.getElementById('invite-modal').addEventListener('click', (e) => {
+                if (e.target.id === 'invite-modal') closeInviteModal();
+            });
+
+            document.getElementById('invite-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                alert(`Invitation sent to ${document.getElementById('invite-email').value}!`);
+                closeInviteModal();
+            });
+
+            // Load settings from localStorage
+            function loadSettings(role) {
+                // Load notifications
+                const notifSettings = localStorage.getItem(`settings_notifications_${role}`);
+                if (notifSettings) {
+                    const settings = JSON.parse(notifSettings);
+                    document.getElementById('notif-email').checked = settings.email !== false;
+                    document.getElementById('notif-order').checked = settings.order !== false;
+                    document.getElementById('notif-error').checked = settings.error !== false;
+                    document.getElementById('notif-review').checked = settings.review !== false;
+                    document.getElementById('notif-weekly').checked = settings.weekly || false;
+                }
+
+                // Load workflow settings (admin only)
+                if (role === 'admin') {
+                    const workflowSettings = localStorage.getItem(`settings_workflow_${role}`);
+                    if (workflowSettings) {
+                        const settings = JSON.parse(workflowSettings);
+                        document.getElementById('refund-limit').value = settings.refundLimit || '72';
+                        document.getElementById('duplicate-window').value = settings.duplicateWindow || '30';
+                        document.getElementById('retry-policy').value = settings.retryPolicy || '3';
+                        document.getElementById('payment-approval').checked = settings.paymentApproval !== false;
+                    }
+                }
+
+                // Load active tab
+                const activeTab = localStorage.getItem(`settings_active_tab_${role}`);
+                if (activeTab) {
+                    switchTab(activeTab);
+                }
+            }
+
+            // Save settings helper
+            function saveSettings(role) {
+                localStorage.setItem(`settings_last_updated_${role}`, new Date().toISOString());
+            }
+
+            // Apply role-based visibility
+            function applyRoleVisibility(role) {
+                // Hide admin-only elements for non-admin users
+                if (role !== 'admin') {
+                    document.querySelectorAll('.admin-only').forEach(el => {
+                        el.style.display = 'none';
+                        // If admin-only tab is active, switch to profile
+                        if (el.classList.contains('tab-btn') && el.classList.contains('active')) {
+                            switchTab('profile');
+                        }
+                    });
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>
