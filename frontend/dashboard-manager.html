@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BizLink - Manager Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        biz: {
+                            bg: '#0f1419', card: '#161b22', border: '#21262d', sidebar: '#0d1117',
+                            primary: '#22c55e', primaryDark: '#16a34a', text: '#e6edf3', muted: '#8b949e'
+                        }
+                    },
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #8b949e;
+            border-left: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .nav-link:hover {
+            background-color: #161b22;
+            color: #e6edf3;
+        }
+
+        .nav-link.active {
+            background-color: #161b22;
+            color: #22c55e;
+            border-left-color: #22c55e;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0f1419;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #21262d;
+            border-radius: 4px;
+        }
+
+        .stat-card {
+            transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+            border-color: #22c55e;
+            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.15);
+        }
+
+        .action-btn {
+            transition: all 0.2s;
+        }
+
+        .action-btn:hover {
+            transform: translateX(2px);
+        }
+
+        .table-row {
+            transition: background-color 0.15s;
+            cursor: pointer;
+        }
+
+        .table-row:hover {
+            background-color: #1a202c;
+        }
+    </style>
+</head>
+
+<body class="bg-biz-bg text-biz-text font-sans flex h-screen overflow-hidden">
+    <aside class="w-64 bg-biz-sidebar border-r border-biz-border flex flex-col flex-shrink-0">
+        <div class="h-16 flex items-center px-6 border-b border-biz-border">
+            <span class="text-xl font-bold text-biz-primary">Biz<span class="text-white">Link</span></span>
+        </div>
+        <nav class="flex-1 py-4 overflow-y-auto"></nav>
+        <div class="p-4 border-t border-biz-border bg-biz-sidebar">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <div class="w-8 h-8 rounded-full bg-biz-primary flex items-center justify-center text-xs font-bold text-black"
+                        id="user-avatar">U</div>
+                    <div class="ml-3">
+                        <p class="text-sm font-medium text-white" id="user-name">User</p>
+                        <p class="text-xs text-biz-muted" id="user-role">Workspace</p>
+                    </div>
+                </div>
+                <button onclick="BizLinkAuth.logout()" class="text-biz-muted hover:text-red-400 text-sm">Logout</button>
+            </div>
+        </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col overflow-hidden">
+        <header class="h-16 bg-biz-card border-b border-biz-border flex justify-between items-center px-6">
+            <h2 class="text-lg font-semibold">Operation Manager Dashboard</h2>
+            <div class="flex items-center gap-4">
+                <input type="text" placeholder="Search workflows, orders, leads..."
+                    class="bg-biz-bg border border-biz-border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-biz-primary w-64">
+                <div class="w-8 h-8 rounded-full bg-biz-primary flex items-center justify-center text-sm font-bold"
+                    id="header-avatar">U</div>
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-6">
+            <div class="mb-6">
+                <p class="text-biz-muted">Your active orders and tracks</p>
+            </div>
+
+            <!-- Stats Grid (Now Clickable) -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <!-- Order this month → Orders -->
+                <div onclick="window.location.href='orders.html'"
+                    class="stat-card bg-biz-card p-5 rounded-xl border border-biz-border">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-biz-muted text-sm">Order this month</p>
+                            <p class="text-3xl font-bold text-white mt-2" id="stat-orders-month">611</p>
+                        </div>
+                        <div class="p-2 bg-green-900/30 rounded-lg text-biz-primary">✓</div>
+                    </div>
+                    <p class="text-xs text-biz-primary mt-2">↑ 11%</p>
+                </div>
+
+                <!-- Avg processing Time → Orders (filter: processing) -->
+                <div onclick="window.location.href='orders.html?status=processing'"
+                    class="stat-card bg-biz-card p-5 rounded-xl border border-biz-border">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-biz-muted text-sm">Avg processing Time</p>
+                            <p class="text-3xl font-bold text-white mt-2">2.3</p>
+                        </div>
+                        <div class="p-2 bg-blue-900/30 rounded-lg text-blue-400">🕒</div>
+                    </div>
+                    <p class="text-xs text-biz-primary mt-2">↑ -15%</p>
+                </div>
+
+                <!-- QA Queue → Reviews -->
+                <div onclick="window.location.href='reviews.html'"
+                    class="stat-card bg-biz-card p-5 rounded-xl border border-biz-border">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-biz-muted text-sm">QA Queue</p>
+                            <p class="text-3xl font-bold text-white mt-2" id="stat-qa-queue">8</p>
+                        </div>
+                        <div class="p-2 bg-green-900/30 rounded-lg text-biz-primary">✓</div>
+                    </div>
+                    <p class="text-xs text-biz-primary mt-2">↑ -2</p>
+                </div>
+            </div>
+
+            <!-- Team Leaderboard -->
+            <div class="bg-biz-card rounded-xl border border-biz-border p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-lg font-semibold">Team Leaderboard</h3>
+                    <button onclick="window.location.href='settings.html#users'"
+                        class="text-sm text-biz-primary hover:underline">View All Staff</button>
+                </div>
+                <table class="w-full text-left text-sm text-biz-muted">
+                    <thead class="bg-biz-bg text-xs uppercase">
+                        <tr>
+                            <th class="px-4 py-3">Rank</th>
+                            <th class="px-4 py-3">Specialist</th>
+                            <th class="px-4 py-3">Orders</th>
+                            <th class="px-4 py-3">Avg Time</th>
+                            <th class="px-4 py-3">Accuracy</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-biz-border">
+                        <tr class="table-row" onclick="window.location.href='orders.html?user=23101179'">
+                            <td class="px-4 py-3 text-white font-bold">#1</td>
+                            <td class="px-4 py-3 text-white flex items-center gap-3">
+                                <div class="w-6 h-6 rounded-full bg-blue-900 text-xs flex items-center justify-center">O
+                                </div>Orghash Pal Tonmoy
+                            </td>
+                            <td class="px-4 py-3">283</td>
+                            <td class="px-4 py-3">2.1 min</td>
+                            <td class="px-4 py-3 text-biz-primary font-medium">99.2%</td>
+                        </tr>
+                        <tr class="table-row" onclick="window.location.href='orders.html?user=23101186'">
+                            <td class="px-4 py-3 text-white font-bold">#2</td>
+                            <td class="px-4 py-3 text-white flex items-center gap-3">
+                                <div class="w-6 h-6 rounded-full bg-green-900 text-xs flex items-center justify-center">
+                                    A</div>Abdullah Al Mamun
+                            </td>
+                            <td class="px-4 py-3">271</td>
+                            <td class="px-4 py-3">2.4 min</td>
+                            <td class="px-4 py-3 text-biz-primary font-medium">98.8%</td>
+                        </tr>
+                        <tr class="table-row" onclick="window.location.href='orders.html?user=23101192'">
+                            <td class="px-4 py-3 text-white font-bold">#3</td>
+                            <td class="px-4 py-3 text-white flex items-center gap-3">
+                                <div
+                                    class="w-6 h-6 rounded-full bg-purple-900 text-xs flex items-center justify-center">
+                                    M</div>Md Monirul Islam
+                            </td>
+                            <td class="px-4 py-3">252</td>
+                            <td class="px-4 py-3">2.6 min</td>
+                            <td class="px-4 py-3 text-biz-primary font-medium">98.1%</td>
+                        </tr>
+                        <tr class="table-row" onclick="window.location.href='orders.html?user=23101188'">
+                            <td class="px-4 py-3 text-white font-bold">#4</td>
+                            <td class="px-4 py-3 text-white flex items-center gap-3">
+                                <div
+                                    class="w-6 h-6 rounded-full bg-yellow-900 text-xs flex items-center justify-center">
+                                    J</div>Joynove Binta Mim
+                            </td>
+                            <td class="px-4 py-3">246</td>
+                            <td class="px-4 py-3">2.8 min</td>
+                            <td class="px-4 py-3 text-biz-primary font-medium">97.5%</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/navigation.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async function () {
+            if (!BizLinkAuth.checkAuth()) return;
+            BizLinkNav.init();
+            await loadStats();
+        });
+
+        async function loadStats() {
+            try {
+                const stats = await BizLinkAPI.call('/dashboard/stats');
+                if (!stats) return;
+
+                // Map to manager-specific elements
+                const ordersMonth = stats.triggers_today ?? 0; // Using today's triggers as monthly proxy for demo
+                const qaQueue = stats.pending_manual_reviews ?? stats.pending_reviews ?? 0;
+
+                // Update IDs (add these IDs to your HTML if missing, or update querySelector)
+                const elOrders = document.getElementById('stat-orders-month');
+                const elQa = document.getElementById('stat-qa-queue');
+
+                if (elOrders) elOrders.textContent = ordersMonth;
+                if (elQa) elQa.textContent = qaQueue;
+            } catch (err) {
+                console.warn('⚠️ Manager stats failed, using fallback data:', err);
+            }
+        }
+    </script>
+</body>
+
+</html>
