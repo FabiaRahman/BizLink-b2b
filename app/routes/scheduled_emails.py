@@ -6,24 +6,57 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-
-
-
 from app.database import get_db
 from app.models.scheduled_email import ScheduledEmail
 from app.models.error_log import ErrorLog, ErrorType, ResolutionStatus
 from app.models.manual_review import ManualReview, ReviewStatus
 from app.schemas.scheduled_email import ScheduledEmailCreate, ScheduledEmailResponse
 
-
 router = APIRouter(prefix="/scheduled-emails", tags=["Scheduled Email Workflow"])
 
+# ✅ SIMULATION MODE: Set to True for demo/testing, False for production
+SIMULATION_MODE = True
 
 # ⚠️ NOTE: In production, load these from .env variables
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 EMAIL_USER = "your_email@gmail.com"
 EMAIL_PASSWORD = "your_app_password"
+
+
+def send_email_simulation(to_email: str, subject: str, body: str, recipient_name: str):
+    """
+    Simulates email sending for demo purposes.
+    Logs what WOULD have been sent without actually sending.
+    """
+    print(f"\n📧 [SIMULATION MODE] Would send email:")
+    print(f"   To: {recipient_name} <{to_email}>")
+    print(f"   Subject: {subject}")
+    print(f"   Body preview: {body[:100]}...")
+    print(f"   Time: {datetime.utcnow().isoformat()}\n")
+    # Always "succeeds" in simulation mode
+    return {"status": "success", "simulated": True}
+
+
+def send_email_via_smtp(to_email: str, subject: str, body: str, recipient_name: str):
+    """
+    Helper function to send email via Gmail/SMTP (REAL sending)
+    """
+    msg = MIMEMultipart()
+    msg['From'] = EMAIL_USER
+    msg['To'] = to_email
+    msg['Subject'] = subject
+   
+    # Support {{name}} template replacement
+    personalized_body = body.replace("{{name}}", recipient_name)
+    msg.attach(MIMEText(personalized_body, 'html' if '<' in body else 'plain'))
+   
+    # Connect & send
+    server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+    server.starttls()
+    server.login(EMAIL_USER, EMAIL_PASSWORD)
+    server.send_message(msg)
+    server.quit()
 
 
 @router.post("/", response_model=ScheduledEmailResponse, status_code=201)
@@ -69,6 +102,8 @@ def send_due_emails(db: Session = Depends(get_db)):
     """
     SRS 3.3.3 FR-9: Process & send emails due today.
     On failure: creates ErrorLog + auto-creates ManualReview (SRS 3.2.3 FR-7)
+    
+    ✅ SIMULATION MODE: When SIMULATION_MODE=True, emails are "sent" without real SMTP calls.
     """
     today = date.today()
    
@@ -84,13 +119,21 @@ def send_due_emails(db: Session = Depends(get_db)):
    
     for email_task in due_emails:
         try:
-            # Attempt to send email
-            send_email_via_smtp(
-                to_email=email_task.recipient_email,
-                subject=email_task.email_subject,
-                body=email_task.email_body,
-                recipient_name=email_task.recipient_name
-            )
+            # ✅ Choose simulation or real sending based on flag
+            if SIMULATION_MODE:
+                send_email_simulation(
+                    to_email=email_task.recipient_email,
+                    subject=email_task.email_subject,
+                    body=email_task.email_body,
+                    recipient_name=email_task.recipient_name
+                )
+            else:
+                send_email_via_smtp(
+                    to_email=email_task.recipient_email,
+                    subject=email_task.email_subject,
+                    body=email_task.email_body,
+                    recipient_name=email_task.recipient_name
+                )
            
             # Mark as successfully sent
             email_task.sent_status = True
@@ -130,29 +173,10 @@ def send_due_emails(db: Session = Depends(get_db)):
         # Commit email task status changes
         db.commit()
    
+    mode_text = "[SIMULATION]" if SIMULATION_MODE else "[LIVE]"
     return {
-        "message": f"Processed {len(due_emails)} emails",
+        "message": f"{mode_text} Processed {len(due_emails)} emails",
         "sent": sent_count,
-        "failed": failed_count
+        "failed": failed_count,
+        "simulation_mode": SIMULATION_MODE
     }
-
-
-def send_email_via_smtp(to_email: str, subject: str, body: str, recipient_name: str):
-    """
-    Helper function to send email via Gmail/SMTP
-    """
-    msg = MIMEMultipart()
-    msg['From'] = EMAIL_USER
-    msg['To'] = to_email
-    msg['Subject'] = subject
-   
-    # Support {{name}} template replacement
-    personalized_body = body.replace("{{name}}", recipient_name)
-    msg.attach(MIMEText(personalized_body, 'html' if '<' in body else 'plain'))
-   
-    # Connect & send
-    server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
-    server.starttls()
-    server.login(EMAIL_USER, EMAIL_PASSWORD)
-    server.send_message(msg)
-    server.quit()
