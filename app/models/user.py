@@ -10,7 +10,9 @@ class User(Base):
     username = Column(String, unique=True, index=True, nullable=False)
     email = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
-    role = Column(String, default="operator")  # admin, manager, operator
+   # Change this line:
+    role = Column(String, default="operator")  # ✅ Ensure default matches frontend expectation
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
