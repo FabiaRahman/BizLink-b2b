@@ -6,7 +6,7 @@ from datetime import datetime
 
 from app.database import get_db
 from app.models.error_log import ErrorLog, ErrorType, ResolutionStatus
-from app.models.manual_review import ManualReview, ReviewStatus  # ✅ ADDED THIS IMPORT
+from app.models.manual_review import ManualReview, ReviewStatus
 from app.schemas.error_log import ErrorLogCreate, ErrorLogResponse
 
 router = APIRouter(prefix="/error-logs", tags=["Error Detection & Logging"])
@@ -51,9 +51,6 @@ def get_error_logs(
     limit: int = 100,
     db: Session = Depends(get_db)
 ):
-    """
-    SRS 3.2.3 FR-4: GET /error-logs with filtering
-    """
     query = db.query(ErrorLog)
     
     if workflow_type:
@@ -63,7 +60,19 @@ def get_error_logs(
     if resolution_status:
         query = query.filter(ErrorLog.resolution_status == resolution_status)
     
-    return query.offset(skip).limit(limit).all()
+    # ✅ NEW: Sort newest first
+    return query.order_by(ErrorLog.created_at.desc()).offset(skip).limit(limit).all()
+
+@router.get("/{log_id}", response_model=ErrorLogResponse)
+def get_error_log(
+    log_id: int,
+    db: Session = Depends(get_db)
+):
+    """Get specific error log details"""
+    db_log = db.query(ErrorLog).filter(ErrorLog.id == log_id).first()
+    if not db_log:
+        raise HTTPException(status_code=404, detail="Error log not found")
+    return db_log
 
 @router.put("/{error_id}/resolve", response_model=ErrorLogResponse)
 def resolve_error(
