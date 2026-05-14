@@ -4,20 +4,42 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime, timedelta
 import uuid
+import logging
 
 from app.database import get_db
 from app.schemas.lead import LeadCreate, LeadResponse, LeadListResponse
 from app.models.lead import Lead, LeadStatus
-from app.utils.error_handler import handle_workflow_error  # ✅ UPDATED IMPORT
-# from app.utils.notifications import send_slack_lead_notification  # Commented per your note
+from app.utils.error_handler import handle_workflow_error
+from app.utils.auth import get_current_user
+from app.models.user import User
+from app.services.slack_service import SlackService
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/leads", tags=["Lead Capture Workflow"])
 DUPLICATE_WINDOW_DAYS = 30
+
+def _send_slack_notification(lead: Lead):
+    """Background task to send Slack notification for new lead"""
+    try:
+        slack_text = (
+            f"🔔 *New Lead Captured*\n"
+            f"👤 *Name:* {lead.name}\n"
+            f"🏢 *Company:* {lead.company or 'N/A'}\n"
+            f"📧 *Email:* {lead.email}\n"
+            f"💼 *Interest:* {lead.area_of_interest or 'N/A'}\n"
+            f"🔗 *Source:* {lead.source or 'Web Form'}"
+        )
+        result = SlackService.send_message(text=slack_text)
+        if result["status"] == "failed":
+            logger.warning(f"[Slack] Lead notification failed: {result['message']}")
+    except Exception as e:
+        logger.error(f"[Slack] Unexpected error sending lead notification: {e}")
 
 @router.post("/", response_model=LeadResponse, status_code=status.HTTP_201_CREATED)
 async def create_lead(
     lead_data: LeadCreate,
     background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     # === STEP 1: Duplicate Detection ===
@@ -28,11 +50,10 @@ async def create_lead(
     ).first()
     
     if existing:
-        # ✅ UPDATED: Use universal handler
         error_log, manual_review = handle_workflow_error(
             db=db,
             workflow_type="lead_capture",
-            entity_id=None,
+            entity_id=existing.id,
             step_name="duplicate_detection",
             error_type="duplicate_entry",
             error_message=f"Duplicate: {lead_data.email} exists within {DUPLICATE_WINDOW_DAYS} days",
@@ -48,9 +69,8 @@ async def create_lead(
         )
     
     # === STEP 2: Create Lead Record ===
+    workflow_run_id = f"lead_{uuid.uuid4().hex[:12]}"
     try:
-        workflow_run_id = f"lead_{uuid.uuid4().hex[:12]}"
-        
         new_lead = Lead(
             name=lead_data.name,
             company=lead_data.company,
@@ -69,16 +89,15 @@ async def create_lead(
         
     except Exception as e:
         db.rollback()
-        # ✅ UPDATED: Use universal handler for DB errors
         error_log, manual_review = handle_workflow_error(
             db=db,
             workflow_type="lead_capture",
             entity_id=None,
             step_name="database_insert",
-            error_type="api_failure",  # or "database_error"
+            error_type="api_failure",
             error_message=f"DB error: {str(e)}",
-            workflow_run_id=None,
-            is_critical=True  # ✅ Critical = auto-create manual review
+            workflow_run_id=workflow_run_id,
+            is_critical=True
         )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -89,22 +108,19 @@ async def create_lead(
     try:
         new_lead.status = LeadStatus.enriched
         db.commit()
-    except:
+    except Exception:
         db.rollback()
     
     # === STEP 4: Slack Notification (Background) ===
-    # background_tasks.add_task(...)  # Uncomment when notifications.py is ready
+    background_tasks.add_task(_send_slack_notification, new_lead)
     
     try:
         new_lead.status = LeadStatus.notified
         db.commit()
-    except:
+    except Exception:
         db.rollback()
     
     return new_lead
-
-# ... rest of the file unchanged ...
-
 
 @router.get("/", response_model=List[LeadListResponse])
 def list_leads(
@@ -112,6 +128,7 @@ def list_leads(
     source: Optional[str] = None,
     skip: int = 0,
     limit: int = 100,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     query = db.query(Lead)
@@ -123,9 +140,12 @@ def list_leads(
     
     return query.offset(skip).limit(limit).all()
 
-
 @router.get("/{lead_id}", response_model=LeadResponse)
-def get_lead(lead_id: int, db: Session = Depends(get_db)):
+def get_lead(
+    lead_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     lead = db.query(Lead).filter(Lead.id == lead_id).first()
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
